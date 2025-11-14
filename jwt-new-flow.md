@@ -680,30 +680,6 @@ ALLOWED_ORIGINS=https://app.hirewing.ca,https://www.hirewing.ca
 REACT_APP_API_URL=https://api.hirewing.ca
 ```
 
----
-
-## Timeline Estimate
-
-**Backend Development:** 1.5 weeks
-- JWT token service: 2 days
-- AWS Cognito integration: 2 days
-- Login endpoint + middleware: 2 days
-- Testing: 2 days
-
-**Frontend Development:** 1 week
-- Remove Cognito SDK: 1 day
-- Update login + axios config: 2 days
-- Update all API calls: 2 days
-- Testing: 2 days
-
-**Integration & Testing:** 1 week
-- End-to-end testing: 3 days
-- Security testing: 2 days
-- Bug fixes: 2 days
-
-**Total: 3.5 - 4 weeks**
-
----
 
 ## Success Checklist
 
