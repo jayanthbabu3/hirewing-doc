@@ -1,234 +1,119 @@
-# QZ Tray Setup Guide — Silent Printing for TDQ Commerce POS
+# QZ Tray Setup — Silent Printing for TDQ Commerce POS
 
-This guide walks you through installing and configuring QZ Tray on your machine so that orders print silently (no browser dialog) when they come in.
-
----
-
-## Step 1: Install QZ Tray
-
-1. Go to **https://qz.io/download/**
-2. Download the installer for your OS:
-   - **Windows**: `.exe` installer
-   - **macOS**: `.pkg` installer
-   - **Linux**: `.run` installer
-3. Run the installer and follow the prompts
-4. After installation, QZ Tray runs in the background:
-   - **Windows**: Look for the QZ icon in the **system tray** (bottom-right near the clock)
-   - **macOS**: Look for the QZ icon in the **menu bar** (top-right)
+Every POS machine needs two things: **QZ Tray installed** and **our signing certificate copied**. That's it.
 
 ---
 
-## Step 2: Whitelist Your Domain (Skip the Trust Dialog)
+## New Machine Setup (3 Steps)
 
-By default, QZ Tray asks "Allow this website to connect?" every time a page loads. To prevent this, you must create an **override.properties** file.
+### Step 1: Install QZ Tray
 
-> **IMPORTANT**: Do NOT edit `prefs.properties` — QZ Tray overwrites it on restart. Use `override.properties` instead, which is permanent.
+1. Download from **https://qz.io/download/**
+2. Run the installer
+3. QZ Tray starts automatically and runs in the background
 
-### Find the QZ Tray config folder
+---
 
-| OS | Config Folder |
-|----|---------------|
-| **macOS** | `~/Library/Application Support/qz/` |
-| **Windows** | `C:\Users\<YourUsername>\AppData\Roaming\qz\` |
-| **Linux** | `~/.qz/` |
+### Step 2: Copy the Signing Certificate
 
-### Create the override.properties file
+This is the key step. Without this, QZ Tray shows a popup on every print.
 
-Open a terminal (or Command Prompt on Windows) and run **one** of the following:
+The certificate file is in our project repo at:
+
+```
+ui-tdqc-partnerintegration/qz-certs/digital-certificate.txt
+```
+
+You need to copy this file into the QZ Tray installation folder and rename it to `override.crt`.
+
+#### Windows (most POS machines):
+
+1. Open **Command Prompt as Administrator** (right-click → Run as administrator)
+2. Run:
+
+```cmd
+copy "C:\path\to\project\qz-certs\digital-certificate.txt" "C:\Program Files\QZ Tray\override.crt"
+```
+
+Or if you have the file on a USB/shared drive:
+
+```cmd
+copy "D:\qz-certs\digital-certificate.txt" "C:\Program Files\QZ Tray\override.crt"
+```
 
 #### macOS:
 
 ```bash
-printf 'wss.whitelist=localhost,localhost\\:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com\n' > ~/Library/Application\ Support/qz/override.properties
+sudo cp /path/to/project/qz-certs/digital-certificate.txt "/Applications/QZ Tray.app/Contents/Resources/override.crt"
 ```
 
 #### Linux:
 
 ```bash
-printf 'wss.whitelist=localhost,localhost\\:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com\n' > ~/.qz/override.properties
+sudo cp /path/to/project/qz-certs/digital-certificate.txt /opt/qz-tray/override.crt
 ```
 
-#### Windows (Command Prompt):
+---
 
-```cmd
-echo wss.whitelist=localhost,localhost:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com > "%APPDATA%\qz\override.properties"
-```
+### Step 3: Restart QZ Tray
 
-#### Windows (PowerShell):
-
-```powershell
-Set-Content "$env:APPDATA\qz\override.properties" "wss.whitelist=localhost,localhost:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com"
-```
-
-### Common domain examples
-
-| Environment | Domain to whitelist |
-|---|---|
-| Local development | `localhost` or `localhost:5173` |
-| Dev / Staging | `app.flex.dev.tdqcommerce.com` |
-| Production | `flex.tdqcommerce.com` |
-
-All environments are whitelisted by default in the commands above:
-
-```
-wss.whitelist=localhost,localhost:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com
-```
-
-### Restart QZ Tray
-
-After creating the file, restart QZ Tray for changes to take effect:
-
+- **Windows**: Right-click QZ icon in system tray (bottom-right near clock) → **Exit**, then reopen from Start Menu → QZ Tray
 - **macOS**: Right-click QZ icon in menu bar → **Quit**, then reopen from Applications
-- **Windows**: Right-click QZ icon in system tray → **Exit**, then reopen from Start Menu
 - **Linux**: `pkill qz` then restart from your application launcher
 
-### Verify the file was created
-
-Run this to confirm:
-
-**macOS:**
-```bash
-cat ~/Library/Application\ Support/qz/override.properties
-```
-
-**Windows (Command Prompt):**
-```cmd
-type "%APPDATA%\qz\override.properties"
-```
-
-**Linux:**
-```bash
-cat ~/.qz/override.properties
-```
-
-You should see:
-```
-wss.whitelist=localhost,localhost:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com
-```
-
 ---
 
-## Step 3: Verify It Works
+## Done! Now Configure in the App
 
 1. Open the POS app in your browser and log in
-2. Click the **printer icon** in the header (top-right, next to notifications bell)
-3. Click **"Connect to QZ Tray"**
-   - It should connect **without** showing any "Action Required" trust dialog
-   - The badge should say **"Connected"** (green)
-4. The printer list auto-loads — select your printer
-5. Click **"Test Print"** — a test receipt should print silently
+2. Click the **printer icon** in the header (top-right)
+3. Click **Connect to QZ Tray** — it should connect with no popup
+4. Select your **printer** from the dropdown
+5. Select **Printer Type**:
+   - **Regular / PDF** — for regular printers
+   - **Thermal (ESC/POS)** — for thermal receipt printers
+6. Toggle **Auto-Print Orders** to **ON**
 
-If you still see the trust dialog, see Troubleshooting below.
+New orders will now print automatically.
 
 ---
 
-## Step 4: Enable Auto-Print
+## Where Is the Certificate File?
 
-1. In the Print Settings dropdown, toggle **"Auto-Print Orders"** to **ON**
-2. Select your **Printer Type**:
-   - **Regular / PDF** — for regular printers
-   - **Thermal (ESC/POS)** — for thermal receipt printers (80mm / 58mm)
-3. Make sure a **printer is selected** from the list
+| What | Where |
+|------|-------|
+| Certificate file (in repo) | `ui-tdqc-partnerintegration/qz-certs/digital-certificate.txt` |
+| Where to copy it (Windows) | `C:\Program Files\QZ Tray\override.crt` |
+| Where to copy it (macOS) | `/Applications/QZ Tray.app/Contents/Resources/override.crt` |
+| Where to copy it (Linux) | `/opt/qz-tray/override.crt` |
 
-From now on, every new order that comes in (for your assigned stores) will print automatically — no clicks needed.
-
-### Store-Based Filtering
-
-- **Admin users**: Receive notifications and auto-print for all orders from all stores
-- **Other roles (User, Reporting)**: Only receive notifications and auto-print for orders from stores assigned to them
-- If a user doesn't have the order's store assigned, they won't see the notification and it won't print on their machine
+> **Tip for bulk deployment**: Copy `digital-certificate.txt` to a shared network drive or USB stick. Then on each machine just run the copy command pointing to that location.
 
 ---
 
 ## Troubleshooting
 
-### Trust dialog ("Action Required") still appears after whitelisting
+### Still seeing "Action Required" popup
 
-This is the most common issue. Check these in order:
+1. **Did you copy the certificate?** Check that `override.crt` exists in the QZ Tray installation folder (see table above)
+2. **Did you restart QZ Tray?** It only reads the certificate on startup
+3. **Did you run as Administrator?** On Windows, copying to `C:\Program Files\` requires admin rights
 
-1. **Did you use `override.properties` (not `prefs.properties`)?**
-   - `prefs.properties` gets overwritten by QZ Tray on restart — your changes are lost
-   - `override.properties` is permanent and never overwritten
-   - Verify: run the "Verify the file was created" command from Step 2
+### No printers found
 
-2. **Did you restart QZ Tray after creating the file?**
-   - QZ Tray only reads config on startup
-   - Quit it completely and reopen
-
-3. **Is the domain correct?**
-   - For localhost with a port, use `localhost:5173` (or whatever port your dev server uses)
-   - For production, use the exact domain (no `https://` prefix, no trailing `/`)
-
-4. **Check file location**
-   - The file must be in the QZ Tray config folder (see table in Step 2)
-   - The filename must be exactly `override.properties`
-
-### "No printers found"
-
-- Make sure at least one printer is installed in your OS
-  - **Windows**: Settings → Devices → Printers & Scanners
-  - **macOS**: System Settings → Printers & Scanners
-- Click **Refresh** in Print Settings after adding a printer
-- "Microsoft Print to PDF" (Windows) works for testing
+- Make sure at least one printer is installed in the OS (Settings → Printers)
+- Click **Refresh** in Print Settings
 
 ### QZ Tray won't connect
 
-- Make sure QZ Tray is running (check system tray / menu bar for the icon)
-- If it's not running, open it from:
-  - **Windows**: Start Menu → QZ Tray
-  - **macOS**: Applications → QZ Tray
-- Try refreshing the browser page after starting QZ Tray
+- Make sure QZ Tray is running (look for the icon in the system tray / menu bar)
+- Refresh the browser page
 
 ### Currency shows as `?` on thermal printer
 
-- Thermal printers only support ASCII characters
-- The app automatically uses `Rs.` instead of `₹` for thermal mode
-- Make sure **Thermal (ESC/POS)** is selected in Printer Type
+- Select **Thermal (ESC/POS)** as Printer Type — the app uses `Rs.` instead of `₹` for thermal
 
-### Print comes out blank or garbled
+### Orders not printing for some users
 
-- Switch between **Regular / PDF** and **Thermal (ESC/POS)** in Print Settings
-- Regular printers should use **Regular / PDF**
-- Thermal receipt printers (Epson, Star, Bixolon, etc.) should use **Thermal (ESC/POS)**
-
-### Orders not printing / no notifications for some users
-
-- This is expected if the order's store is not assigned to that user
-- Admin users see all orders; other roles only see orders for their assigned stores
-- Check with your admin that the correct stores are assigned to the user
-
----
-
-## Quick Reference
-
-| Setting | Where |
-|---|---|
-| QZ Tray download | https://qz.io/download/ |
-| Override config (macOS) | `~/Library/Application Support/qz/override.properties` |
-| Override config (Windows) | `%APPDATA%\qz\override.properties` |
-| Override config (Linux) | `~/.qz/override.properties` |
-| Whitelist format | `wss.whitelist=domain1,domain2,domain3` |
-| Print Settings in app | Printer icon in the header (top-right) |
-
----
-
-## One-Liner Setup (Copy-Paste)
-
-For quick setup on a new machine, just run one command after installing QZ Tray:
-
-**macOS:**
-```bash
-printf 'wss.whitelist=localhost,localhost\\:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com\n' > ~/Library/Application\ Support/qz/override.properties && echo "Done! Now restart QZ Tray."
-```
-
-**Windows (Command Prompt):**
-```cmd
-echo wss.whitelist=localhost,localhost:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com > "%APPDATA%\qz\override.properties" && echo Done! Now restart QZ Tray.
-```
-
-**Linux:**
-```bash
-printf 'wss.whitelist=localhost,localhost\\:5173,app.flex.dev.tdqcommerce.com,flex.tdqcommerce.com\n' > ~/.qz/override.properties && echo "Done! Now restart QZ Tray."
-```
-
-Then restart QZ Tray and you're good to go.
+- Non-admin users only get prints for their assigned stores
+- Check with admin that correct stores are assigned
