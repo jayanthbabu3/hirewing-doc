@@ -69,30 +69,46 @@ So the loop is: **candidate's voice → LiveKit → Deepgram (text) → OpenAI L
 
 ## Capability 2 — Recording the Interview & Storing in S3
 
-**The question: how do we record the session video and get it into S3 — and do we need a third-party tool for it? No.**
+**In plain words: the whole interview is recorded right inside the candidate's own desktop app, and once it's done the video is saved to our online storage (S3) so the employer can watch it later. We do not use any outside recording tool to do this.**
 
-### What each piece does
+Think of it like recording a video on your phone and then backing it up to the cloud — except it all happens automatically inside our app while the interview runs.
 
-- **MediaRecorder API** — a **built-in browser API** (available in our Electron app — no external library, no Zoom recorder). It captures the screen + camera + the mixed audio (candidate's voice plus the AI's voice) and packages it as a standard **WebM** video file. To avoid memory issues, it writes the file to disk in 1 MB chunks as it goes.
+### Step 1 — The desktop app records everything (on the candidate's computer)
 
-- **AWS S3** — where the finished recording lives. We use Amazon's official AWS SDK on the backend.
+The interview takes place inside our **desktop app**, which runs on the candidate's own laptop. While the interview is going on, the app quietly records the whole session — the candidate's camera, their screen, and the audio (both the candidate's voice and the AI interviewer's voice mixed together). It saves all of this as one normal video file.
 
-- **Presigned URL** — the key trick. The desktop app never holds AWS passwords. Instead, when it's ready to upload, it asks our backend for a **presigned upload URL** — a one-time, time-limited link that grants permission to upload exactly one file. The app then uploads the video straight to S3 using that link (with automatic retry if the network hiccups).
+- The tool that does the recording is the **MediaRecorder** — this is a recording feature **already built into the app itself**. We did not buy or plug in any third-party recorder (no Zoom, no screen-recording software). The video is saved in the standard **WebM** format that any browser can play.
+- As it records, the app keeps writing the video to the computer's disk in small pieces, so even a long interview never overloads memory or gets lost.
+
+### Step 2 — The finished video is sent to online storage (S3)
+
+When the interview ends, the recorded video needs to move from the candidate's laptop to a safe place online where the employer can later watch it. That safe place is **Amazon S3** — basically a secure online hard drive (like Google Drive or Dropbox, but for our system).
+
+The candidate's app is **not** trusted with the password to our storage. Instead, we use a safer approach:
+
+1. The app asks our **backend**: "I'm ready to upload the recording."
+2. The backend replies with a **one-time upload link** (called a "presigned URL") — a temporary pass that allows uploading exactly one file, then expires.
+3. The app uploads the video **straight to S3** using that link. If the internet drops mid-upload, it automatically retries.
+4. The app tells the backend "the video is now stored here," along with the transcript and any proctoring flags, which the backend saves in the database.
 
 ### The flow, step by step
 
 ```
-  Desktop app (MediaRecorder records WebM)
+  CANDIDATE'S DESKTOP APP                    OUR BACKEND                ONLINE STORAGE (S3)
+  ───────────────────────                    ───────────                ───────────────────
+  Records the interview
+  as a video file (WebM)
         │
-        │ 1. "I'm ready to upload" ──────────────▶  Backend
-        │ 2.  ◀────── one-time presigned upload URL ──
+        │ 1. "Ready to upload" ───────────▶
+        │ 2. ◀─── one-time upload pass ────
         │
-        │ 3. Upload the WebM file directly ──────────────────▶  AWS S3  (stored)
+        │ 3. Uploads the video directly ───────────────────────────────▶  Video saved
         │
-        │ 4. "Here's the file location + transcript + proctor events" ──▶ Backend (saves to DB)
+        │ 4. "Done — saved here" + transcript ──▶  Saves the details
+        │                                          in the database
 ```
 
-The upload goes **directly from the app to S3** (not through our backend), which keeps it fast and cheap. The backend only hands out the permission slip and records where the file landed.
+**Why it's done this way:** the video goes **straight from the app to storage** instead of passing through our backend — that makes it fast and keeps our costs low. The backend only hands out the temporary pass and remembers where the video was stored, so it can find it again when the employer wants to watch it.
 
 ---
 
